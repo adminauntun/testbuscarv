@@ -1,7 +1,6 @@
 import pandas as pd
 import streamlit as st
 from io import BytesIO
-import openpyxl as openpyxl
 import string
 
 # Función para generar nombres de columnas basados en el número de columnas
@@ -27,11 +26,16 @@ def to_excel(df):
     return processed_data
 
 # Cargar el archivo
-uploaded_file = st.file_uploader("Sube tu archivo Excel aquí", type=['xlsx'])
+uploaded_file = st.file_uploader("Sube tu archivo aquí", type=['xlsx', 'xls', 'csv'])
 
 if uploaded_file is not None:
-    # Leyendo el archivo Excel
-    df = pd.read_excel(uploaded_file, engine='openpyxl')
+    file_extension = uploaded_file.name.split('.')[-1]
+
+    # Leyendo el archivo según su extensión
+    if file_extension in ['xlsx', 'xls']:
+        df = pd.read_excel(uploaded_file, engine='openpyxl')
+    elif file_extension == 'csv':
+        df = pd.read_csv(uploaded_file)
 
     # Inicializar barra de progreso y texto de estado en Streamlit
     progress_bar = st.progress(0)
