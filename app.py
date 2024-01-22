@@ -33,7 +33,7 @@ if uploaded_file is not None:
 
     # Leyendo el archivo según su extensión
     if file_extension in ['xlsx', 'xls']:
-        df = pd.read_excel(uploaded_file, engine='openpyxl')
+        df = pd.read_excel(uploaded_file, engine='xlrd')
     elif file_extension == 'csv':
         df = pd.read_csv(uploaded_file)
 
