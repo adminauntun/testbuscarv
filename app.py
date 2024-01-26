@@ -1,6 +1,8 @@
 import pandas as pd
 import streamlit as st
 
+st.write("Streamlit version:", st.__version__)
+
 def file_opener(uploaded_file):
     try:
         file_extension = uploaded_file.name.split('.')[-1].lower()
