@@ -30,6 +30,8 @@ def buscador_coincidencias_y_columna_adjacente(df, productos_a_actualizar_depura
     return sin_actualizar_con_adjacente
 
 st.title("Cargador de Archivos de Productos")
+st.write("Colocar ´a actualizar´ como titulo a la columna de codigos a modificar")
+st.write("Colocar ´actualizados´ como titulo a la columna de codigos modificados del reporte de flexxus")
 uploaded_file = st.file_uploader("Cargue aquí su archivo Excel", type=['xlsx'])
 
 if uploaded_file is not None:
@@ -43,10 +45,13 @@ if uploaded_file is not None:
 
     productos_sin_actualizar_con_adjacente = buscador_coincidencias_y_columna_adjacente(file_handler, productos_a_actualizar_depurado, productos_actualizados_depurado)
 
-    df_resultado = pd.DataFrame(productos_sin_actualizar_con_adjacente, columns=["Producto", "Columna Adyacente"])
+    df_resultado = pd.DataFrame(productos_sin_actualizar_con_adjacente, columns=["Productos sin actualizar", "Descripcion del producto"])
     
     # Mostrar la tabla en Streamlit
-    st.write("La cantidad de productos sin actualizar es: ",len(df_resultado))
+    cantidad_no_actualizados = len(df_resultado)
+    cantidad_actualizados = len(productos_a_actualizar_depurado) - cantidad_no_actualizados
+    st.write("Haz actualizado: ",cantidad_actualizados, " de ", len(productos_a_actualizar_depurado))
+    st.write("La cantidad de productos sin actualizar es: ", cantidad_no_actualizados)
     st.write("Vista previa de la tabla a descargar:")
     st.dataframe(df_resultado)  # Puedes usar st.table(df_resultado) si prefieres
     
@@ -56,6 +61,7 @@ if uploaded_file is not None:
     archivo_salida = "productos_sin_actualizar.csv"
     
     st.download_button(label="Descargar Datos", data=csv_data, file_name=archivo_salida, mime='text/csv')
+    
 
 else:
     st.write("Por favor, cargue un archivo para continuar.")
