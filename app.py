@@ -7,7 +7,7 @@ def file_opener(uploaded_file):
         df = pd.read_excel(uploaded_file, header=0, dtype=str)
         return df
     except:
-        st.error("Error al cargar el archivo.")
+        st.error("Error al cargar el archivo. Asegúrese de que el archivo sea un archivo Excel válido.")
 
 def create_lista(df, columna):
     return df[columna].tolist()
@@ -37,31 +37,35 @@ uploaded_file = st.file_uploader("Cargue aquí su archivo Excel", type=['xlsx'])
 if uploaded_file is not None:
     file_handler = file_opener(uploaded_file)
 
-    productos_a_actualizar = create_lista(file_handler, "a actualizar")
-    productos_actualizados = create_lista(file_handler, "actualizados")
+    # Check if file_handler is not None before processing
+    if file_handler is not None:
+        productos_a_actualizar = create_lista(file_handler, "a actualizar")
+        productos_actualizados = create_lista(file_handler, "actualizados")
 
-    productos_a_actualizar_depurado = depuracion(productos_a_actualizar)
-    productos_actualizados_depurado = depuracion(productos_actualizados)
+        productos_a_actualizar_depurado = depuracion(productos_a_actualizar)
+        productos_actualizados_depurado = depuracion(productos_actualizados)
 
-    productos_sin_actualizar_con_adjacente = buscador_coincidencias_y_columna_adjacente(file_handler, productos_a_actualizar_depurado, productos_actualizados_depurado)
+        productos_sin_actualizar_con_adjacente = buscador_coincidencias_y_columna_adjacente(file_handler, productos_a_actualizar_depurado, productos_actualizados_depurado)
 
-    df_resultado = pd.DataFrame(productos_sin_actualizar_con_adjacente, columns=["Productos sin actualizar", "Descripcion del producto"])
-    
-    # Mostrar la tabla en Streamlit
-    cantidad_no_actualizados = len(df_resultado)
-    cantidad_actualizados = len(productos_a_actualizar_depurado) - cantidad_no_actualizados
-    st.write("Haz actualizado: ",cantidad_actualizados, " de ", len(productos_a_actualizar_depurado))
-    st.write("La cantidad de productos sin actualizar es: ", cantidad_no_actualizados)
-    st.write("Vista previa de la tabla a descargar:")
-    st.dataframe(df_resultado)  # Puedes usar st.table(df_resultado) si prefieres
-    
-    # Convertir DataFrame a CSV para la descarga
-    csv_data = df_resultado.to_csv(index=False, sep=';', quotechar='"', encoding='utf-8')
-    
-    archivo_salida = "productos_sin_actualizar.csv"
-    
-    st.download_button(label="Descargar Datos", data=csv_data, file_name=archivo_salida, mime='text/csv')
-    
+        df_resultado = pd.DataFrame(productos_sin_actualizar_con_adjacente, columns=["Productos sin actualizar", "Descripcion del producto"])
+
+        # Mostrar la tabla en Streamlit
+        cantidad_no_actualizados = len(df_resultado)
+        cantidad_actualizados = len(productos_a_actualizar_depurado) - cantidad_no_actualizados
+        st.write("Haz actualizado: ", cantidad_actualizados, " de ", len(productos_a_actualizar_depurado))
+        st.write("La cantidad de productos sin actualizar es: ", cantidad_no_actualizados)
+        st.write("Vista previa de la tabla a descargar:")
+        st.dataframe(df_resultado)  # Puedes usar st.table(df_resultado) si prefieres
+
+        # Convertir DataFrame a CSV para la descarga
+        csv_data = df_resultado.to_csv(index=False, sep=';', quotechar='"', encoding='utf-8')
+
+        archivo_salida = "productos_sin_actualizar.csv"
+
+        st.download_button(label="Descargar Datos", data=csv_data, file_name=archivo_salida, mime='text/csv')
+
+    else:
+        st.error("Error al cargar el archivo. Asegúrese de que el archivo sea un archivo Excel válido.")
 
 else:
     st.write("Por favor, cargue un archivo para continuar.")
