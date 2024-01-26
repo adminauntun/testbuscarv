@@ -3,6 +3,10 @@ import streamlit as st
 
 def file_opener(uploaded_file):
     try:
+        file_extension = uploaded_file.name.split('.')[-1].lower()
+        if file_extension != 'xlsx':
+            st.error("Error al cargar el archivo. El archivo debe ser un archivo Excel (.xlsx).")
+            return None
         # Especifica dtype=str para asegurar que todos los datos se lean como texto
         df = pd.read_excel(uploaded_file, header=0, dtype=str)
         return df
