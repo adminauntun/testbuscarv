@@ -1,93 +1,61 @@
 import pandas as pd
 import streamlit as st
-from io import BytesIO
-import string
 
-# Función para generar nombres de columnas basados en el número de columnas
-def generate_column_names(n):
-    alphabet = list(string.ascii_uppercase)
-    column_names = []
-    for first_letter in alphabet:
-        column_names.append(first_letter)
-        if len(column_names) == n:
-            return column_names
-    for first_letter in alphabet:
-        for second_letter in alphabet:
-            column_names.append(first_letter + second_letter)
-            if len(column_names) == n:
-                return column_names
+def file_opener(uploaded_file):
+    try:
+        # Especifica dtype=str para asegurar que todos los datos se lean como texto
+        df = pd.read_excel(uploaded_file, header=0, dtype=str)
+        return df
+    except:
+        st.error("Error al cargar el archivo.")
 
-# Función para convertir el dataframe a Excel para descarga
-def to_excel(df):
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name='Sheet1')
-    processed_data = output.getvalue()
-    return processed_data
+def create_lista(df, columna):
+    return df[columna].tolist()
 
-# Cargar el archivo
-uploaded_file = st.file_uploader("Sube tu archivo aquí", type=['xlsx', 'xls', 'csv'])
+valores_no_utiles = ["Código", "MAIRA SRL", "MAIRA", "nan"]
+
+def depuracion(lista):
+    return [i for i in lista if i not in valores_no_utiles and not pd.isna(i)]
+
+def buscador_coincidencias_y_columna_adjacente(df, productos_a_actualizar_depurado, productos_actualizados_depurado):
+    sin_actualizar_con_adjacente = []
+    for producto in productos_a_actualizar_depurado:
+        if producto not in productos_actualizados_depurado:
+            index = df[df['a actualizar'] == producto].index[0]
+            valor_adjacente = df.iloc[index, df.columns.get_loc('a actualizar') + 1]
+            # Asegurarse de que los datos estén como texto
+            producto = str(producto)
+            valor_adjacente = str(valor_adjacente)
+            sin_actualizar_con_adjacente.append([producto, valor_adjacente])
+    return sin_actualizar_con_adjacente
+
+st.title("Cargador de Archivos de Productos")
+uploaded_file = st.file_uploader("Cargue aquí su archivo Excel", type=['xlsx'])
 
 if uploaded_file is not None:
-    file_extension = uploaded_file.name.split('.')[-1]
+    file_handler = file_opener(uploaded_file)
 
-    # Leyendo el archivo según su extensión
-    if file_extension in ['xlsx', 'xls']:
-        df = pd.read_excel(uploaded_file, engine='xlrd')
-    elif file_extension == 'csv':
-        df = pd.read_csv(uploaded_file)
+    productos_a_actualizar = create_lista(file_handler, "a actualizar")
+    productos_actualizados = create_lista(file_handler, "actualizados")
 
-    # Inicializar barra de progreso y texto de estado en Streamlit
-    progress_bar = st.progress(0)
-    status_text = st.empty()
+    productos_a_actualizar_depurado = depuracion(productos_a_actualizar)
+    productos_actualizados_depurado = depuracion(productos_actualizados)
 
-    # Generar nombres de columnas basados en el número de columnas del DataFrame
-    df.columns = generate_column_names(len(df.columns))
+    productos_sin_actualizar_con_adjacente = buscador_coincidencias_y_columna_adjacente(file_handler, productos_a_actualizar_depurado, productos_actualizados_depurado)
 
-    progress_bar.progress(20)
-    status_text.text("Preprocesando datos...")
+    df_resultado = pd.DataFrame(productos_sin_actualizar_con_adjacente, columns=["Producto", "Columna Adyacente"])
+    
+    # Mostrar la tabla en Streamlit
+    st.write("La cantidad de productos sin actualizar es: ",len(df_resultado))
+    st.write("Vista previa de la tabla a descargar:")
+    st.dataframe(df_resultado)  # Puedes usar st.table(df_resultado) si prefieres
+    
+    # Convertir DataFrame a CSV para la descarga
+    csv_data = df_resultado.to_csv(index=False, sep=';', quotechar='"', encoding='utf-8')
+    
+    archivo_salida = "productos_sin_actualizar.csv"
+    
+    st.download_button(label="Descargar Datos", data=csv_data, file_name=archivo_salida, mime='text/csv')
 
-    # Convertir las columnas relevantes a string y manejar valores NaN
-    df['A'] = df['A'].astype(str).fillna('')
-    df['D'] = df['D'].astype(str).fillna('')
-
-    # Ignorar artículos que contienen la palabra 'MAIRA' en la columna 'A'
-    df = df[~df['A'].str.contains('MAIRA','maira')]
-
-    progress_bar.progress(40)
-    status_text.text("Validando longitud de artículos...")
-
-    # Filtrar artículos con longitud inválida en la columna 'A'
-    valid_length = df['A'].apply(lambda x: len(x) in [5, 6])
-    invalid_articles = df[~valid_length]
-    df = df[valid_length]
-
-    progress_bar.progress(60)
-    status_text.text("Comparando artículos...")
-
-    # Comparando artículos de la Columna A con la Columna D
-    unmatched = df[~df['A'].isin(df['D'])][['A', 'B']]
-
-    # Conteo de coincidencias y no coincidencias
-    count_unmatched = unmatched.shape[0]
-    progress_bar.progress(80)
-    status_text.text(f"Proceso completado. Artículos no actualizados: {count_unmatched}")
-
-    # Preparar el archivo Excel para la descarga
-    output_file = to_excel(unmatched)
-    st.download_button(label="Descargar Excel con artículos no actualizados",
-                       data=output_file,
-                       file_name="Items_no_encontrados.xlsx",
-                       mime="application/vnd.ms-excel")
-
-    # Opcional: Mostrar y descargar artículos con longitud inválida
-    if not invalid_articles.empty:
-        st.write("Artículos con longitud inválida:")
-        st.dataframe(invalid_articles)
-        invalid_file = to_excel(invalid_articles)
-        st.download_button(label="Descargar Excel con artículos de longitud inválida",
-                           data=invalid_file,
-                           file_name="Articulos_longitud_invalida.xlsx",
-                           mime="application/vnd.ms-excel")
-
-    progress_bar.progress(100)
+else:
+    st.write("Por favor, cargue un archivo para continuar.")
